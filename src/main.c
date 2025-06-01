@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define DEFAULT_FILE_PATH "res/wall.bmp"
 #define BUFFER_SIZE 250
 
 typedef struct {
@@ -192,12 +193,18 @@ void bmp_destroy(bmp_image_t *image) {
   image = NULL;
 }
 
-int main(void) {
+int main(int argc, char **argv) {
   bmp_image_t *pic;
+  const char *filepath = DEFAULT_FILE_PATH;
+  if (argc > 1) {
+    filepath = argv[1];
+  }
+  printf("Loading: %s\n", filepath);
 
-  pic = bmp_load("res/wall.bmp");
+  pic = bmp_load(filepath);
   if (!pic) {
     perror("could not open image");
+    exit(EXIT_FAILURE);
   }
 
   printf("Header:\n");
