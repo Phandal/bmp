@@ -49,8 +49,10 @@ int main(int argc, char **argv) {
     pixel = pic->pixel[i];
     printf("R%3u ", pixel.red);
     printf("G%3u ", pixel.green);
-    printf("B%3u\t", pixel.blue);
-    printf("#%02X%02X%02X", pixel.red, pixel.green, pixel.blue);
+    printf("B%3u ", pixel.blue);
+    printf("A%3u\t", pixel.alpha);
+    printf("#%02X%02X%02X %02X", pixel.red, pixel.green, pixel.blue,
+           pixel.alpha);
     printf("\t%lu\n", i);
   }
 

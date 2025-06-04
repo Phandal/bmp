@@ -129,6 +129,12 @@ bmp_image_t *bmp_load(const char *filepath) {
 
   for (unsigned long i = 0; i < image->numberOfPixels; ++i) {
     bmp_pixel_t *pixel = &image->pixel[i];
+    if (image->info.bitsPerPixel == 32) {
+      _bmp_read_uint8(&pixel->alpha, &buffer);
+    } else {
+      pixel->alpha = 0xFF;
+    }
+
     _bmp_read_uint8(&pixel->blue, &buffer);
     _bmp_read_uint8(&pixel->green, &buffer);
     _bmp_read_uint8(&pixel->red, &buffer);
