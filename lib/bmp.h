@@ -3,11 +3,13 @@
 #define BMP_H
 
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define BUFFER_SIZE 250
+
+enum {
+  BMP_READ,
+  BMP_WRITE,
+};
 
 typedef struct {
   unsigned char signature[2];
@@ -43,7 +45,35 @@ typedef struct {
   bmp_pixel_t *pixel;
 } bmp_image_t;
 
+/**
+ * @brief Load a bmp image from a file.
+ *
+ * Loads a ".bmp" image from a file into a `bmp_image_t` structure.
+ *
+ * @param filepath The path to the file that contains the picure.
+ * @return A `bmp_image_t` pointer or `NULL` on error.
+ */
 bmp_image_t *bmp_load(const char *filepath);
+
+/**
+ * @brief Save a `bmp_image_t` to a file.
+ *
+ * Saves a bmp_image_t to a file, encoded as a ".bmp" file.
+ *
+ * @param image The image to save to the file.
+ * @param filepath The location of where to save the file to.
+ *
+ * @return non-zero on error and `0` on success.
+ */
+int bmp_save_image(bmp_image_t *image, char *filepath);
+
+/**
+ * @brief Destorys a loaded bmp image
+ *
+ * Frees all memory related to a `bmp_image_t`.
+ *
+ * @param image An image that was loaded with `bmp_load`.
+ */
 void bmp_destroy(bmp_image_t *image);
 
 #endif // BMP_H

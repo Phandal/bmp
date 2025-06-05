@@ -1,3 +1,8 @@
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "bmp.h"
 
 int _bmp_read_string(uint8_t *dest, unsigned int n, uint8_t **buffer) {
@@ -7,7 +12,7 @@ int _bmp_read_string(uint8_t *dest, unsigned int n, uint8_t **buffer) {
 }
 
 int _bmp_read(void *dest, uint8_t **buffer, unsigned int n) {
-  int i = 0;
+  long i = 0;
   unsigned long readNumber = 0;
 
   if (dest == NULL) {
@@ -37,11 +42,54 @@ int _bmp_read_uint32(uint32_t *dest, uint8_t **buffer) {
   return _bmp_read(dest, buffer, 4);
 }
 
-FILE *_bmp_open_file(const char *filepath, unsigned long *fileSize) {
-  FILE *imageFile;
-  *fileSize = 0;
+int _bmp_write_string(unsigned char *string, unsigned long n, FILE *imageFile) {
+  fwrite(string, n, 1, imageFile);
+  return n;
+}
 
-  imageFile = fopen(filepath, "rb");
+int _bmp_write(uint64_t *src, FILE *imageFile, unsigned long n) {
+  long i = 0;
+  unsigned long writeNumber = 0;
+
+  for (i = 0; i < n; ++i) {
+    if (src == NULL) {
+      fwrite("\0", 1, 1, imageFile);
+    } else {
+      uint8_t writeValue = (*src >> (i * 8)) & 0xFF;
+      fwrite(&writeValue, 1, 1, imageFile);
+    }
+  }
+
+  return n;
+}
+
+int _bmp_write_uint8(uint8_t *src, FILE *imageFile) {
+  return _bmp_write((uint64_t *)src, imageFile, 1);
+}
+
+int _bmp_write_uint16(uint16_t *src, FILE *imageFile) {
+  return _bmp_write((uint64_t *)src, imageFile, 2);
+}
+
+int _bmp_write_uint32(uint32_t *src, FILE *imageFile) {
+  return _bmp_write((uint64_t *)src, imageFile, 4);
+}
+
+FILE *_bmp_open_file(const char *filepath, unsigned long *fileSize,
+                     int openMethod) {
+  FILE *imageFile;
+  unsigned long length = 0;
+
+  switch (openMethod) {
+  case BMP_READ:
+    imageFile = fopen(filepath, "rb");
+    break;
+  case BMP_WRITE:
+    imageFile = fopen(filepath, "wb");
+    break;
+  default:
+    imageFile = NULL;
+  }
   if (!imageFile) {
     return NULL;
   }
@@ -51,13 +99,17 @@ FILE *_bmp_open_file(const char *filepath, unsigned long *fileSize) {
     return NULL;
   }
 
-  *fileSize = ftell(imageFile);
-  if (*fileSize == -1) {
+  length = ftell(imageFile);
+  if (length == -1) {
     fclose(imageFile);
     return NULL;
   }
 
   rewind(imageFile);
+
+  if (fileSize != NULL) {
+    *fileSize = length;
+  }
 
   return imageFile;
 }
@@ -74,7 +126,7 @@ bmp_image_t *bmp_load(const char *filepath) {
     return NULL;
   }
 
-  imageFile = _bmp_open_file(filepath, &bufferSize);
+  imageFile = _bmp_open_file(filepath, &bufferSize, BMP_READ);
   if (!imageFile) {
     bmp_destroy(image);
     return NULL;
@@ -142,6 +194,56 @@ bmp_image_t *bmp_load(const char *filepath) {
   }
 
   return image;
+}
+
+int bmp_save_image(bmp_image_t *image, char *filepath) {
+  FILE *imageFile;
+  imageFile = _bmp_open_file(filepath, NULL, BMP_WRITE);
+  if (!imageFile) {
+    return -1;
+  }
+
+  // Header
+  _bmp_write_string(image->header.signature, 2, imageFile);
+  _bmp_write_uint32(&image->header.filesize, imageFile);
+  _bmp_write_uint32(NULL, imageFile);
+  _bmp_write_uint32(&image->header.dataOffset, imageFile);
+
+  // Info
+  _bmp_write_uint32(&image->info.size, imageFile);
+  _bmp_write_uint32(&image->info.width, imageFile);
+  _bmp_write_uint32(&image->info.height, imageFile);
+  _bmp_write_uint16(&image->info.planes, imageFile);
+  _bmp_write_uint16(&image->info.bitsPerPixel, imageFile);
+  _bmp_write_uint32(&image->info.compression, imageFile);
+  _bmp_write_uint32(&image->info.imageSize, imageFile);
+  _bmp_write_uint32(&image->info.xPixelsPerMeter, imageFile);
+  _bmp_write_uint32(&image->info.yPixelsPerMeter, imageFile);
+  _bmp_write_uint32(&image->info.colorsUsed, imageFile);
+  _bmp_write_uint32(&image->info.numberOfImportantColors, imageFile);
+
+  // Color
+  if (image->info.bitsPerPixel < 8) {
+    fprintf(stderr, "WRITING COLOR TABLE NOT SUPPORTED\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Pixel Data
+  for (unsigned long i = 0; i < image->numberOfPixels; ++i) {
+    bmp_pixel_t *pixel = &image->pixel[i];
+
+    _bmp_write_uint8(&pixel->blue, imageFile);
+    _bmp_write_uint8(&pixel->green, imageFile);
+    _bmp_write_uint8(&pixel->red, imageFile);
+
+    if (image->info.bitsPerPixel == 32) {
+      _bmp_write_uint8(&pixel->alpha, imageFile);
+    }
+  }
+
+  fclose(imageFile);
+
+  return 0;
 }
 
 void bmp_destroy(bmp_image_t *image) {

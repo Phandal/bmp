@@ -3,11 +3,12 @@
 
 #include "bmp.h"
 
-#define DEFAULT_FILE_PATH "res/wall.bmp"
+#define DEFAULT_READ_PATH "res/wall.bmp"
+#define DEFAULT_WRITE_PATH "res/test.bmp"
 
 int main(int argc, char **argv) {
   bmp_image_t *pic;
-  const char *filepath = DEFAULT_FILE_PATH;
+  const char *filepath = DEFAULT_READ_PATH;
   if (argc > 1) {
     filepath = argv[1];
   }
@@ -44,6 +45,8 @@ int main(int argc, char **argv) {
 
   printf("Pixel: \n");
   printf("pic.numberOfPixels: %lu\n", pic->numberOfPixels);
+
+#ifdef PIXEL_PRINT
   bmp_pixel_t pixel;
   for (unsigned long i = 0; i < pic->numberOfPixels; ++i) {
     pixel = pic->pixel[i];
@@ -55,6 +58,15 @@ int main(int argc, char **argv) {
            pixel.alpha);
     printf("\t%lu\n", i);
   }
+#else
+  printf("\n");
+#endif
+
+  if (bmp_save_image(pic, DEFAULT_WRITE_PATH) != 0) {
+    perror("could not write file");
+    exit(EXIT_FAILURE);
+  };
+  printf("Wrote test image to: %s\n", DEFAULT_WRITE_PATH);
 
   bmp_destroy(pic);
   return 0;
